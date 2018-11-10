@@ -17,4 +17,8 @@
 cd src/data
 python clean.py
 ```
-
+- run the script to preprocess and store data in `data/processed`
+```python
+cd src/data
+python preprocess.py
+```
