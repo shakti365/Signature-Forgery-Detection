@@ -31,14 +31,14 @@ for real_image, forged_image in zip(real_images, forged_images):
     
 # create tuples of image for training
 negative_image_tuples = list()
-positive_image_tuples = list()
+# positive_image_tuples = list()
 
 for image_id in real_images_dict.keys():
     real = real_images_dict[image_id]
     forged = forged_images_dict[image_id]
     
-    negative_image_tuples.extend(list(itertools.product(real, forged)))
-    positive_image_tuples.extend(list(itertools.product(real, real)))
+    negative_image_tuples.extend(list(itertools.product(real, real, forged)))
+#     positive_image_tuples.extend(list(itertools.product(real, real)))
     
 def process(image_path, size=(128, 256)):
     """returns processed images"""
@@ -61,29 +61,32 @@ def process(image_path, size=(128, 256)):
 # pre-process data
 image_1 = []
 image_2 = []
+image_3 = []
 labels = []
 
-for real, forged in negative_image_tuples:
-    image_1.append(process(real))
-    image_2.append(process(forged))
+for anchor, positive, negative in negative_image_tuples:
+    image_1.append(process(anchor))
+    image_2.append(process(positive))
+    image_3.append(process(negative))
     labels.append(0)
     
-for real1, real2 in positive_image_tuples:
-    image_1.append(process(real1))
-    image_2.append(process(real2))
-    labels.append(1)
+# for real1, real2 in positive_image_tuples:
+#     image_1.append(process(real1))
+#     image_2.append(process(real2))
+#     labels.append(1)
     
 # Convert to numpy arrays
 image_1_array = np.asarray(image_1)
 image_2_array = np.asarray(image_2)
+image_3_array = np.asarray(image_3)
 labels_array = np.array(labels)
-labels_array = np.stack((labels_array, 1 - labels_array), axis=1)
 
 # shuffle numpy arrays
 idx = np.random.choice(range(len(image_1)), size=len(image_1), replace=False)
 
 X_1 = image_1_array[idx]
 X_2 = image_2_array[idx]
+X_3 = image_3_array[idx]
 y = labels_array[idx]
 
 # split data into train-valid-test set.
@@ -94,17 +97,20 @@ valid_offset = int(valid_split * len(X_1))
 
 X_1_train = X_1[:train_offset]
 X_2_train = X_2[:train_offset]
+X_3_train = X_3[:train_offset]
 y_train = y[:train_offset]
 
 X_1_valid = X_1[train_offset:valid_offset]
 X_2_valid = X_2[train_offset:valid_offset]
+X_3_valid = X_3[train_offset:valid_offset]
 y_valid = y[train_offset:valid_offset]
 
 X_1_test = X_1[valid_offset:]
 X_2_test = X_2[valid_offset:]
+X_3_test = X_3[valid_offset:]
 y_test = y[valid_offset:]
 
 destn_dir = '../../data/processed/'
-np.savez(os.path.join(destn_dir, 'train.npz'), X_1_train=X_1_train, X_2_train=X_2_train, y_train=y_train)
-np.savez(os.path.join(destn_dir, 'valid.npz'), X_1_valid=X_1_valid, X_2_valid=X_2_valid, y_valid=y_valid)
-np.savez(os.path.join(destn_dir, 'test.npz'), X_1_test=X_1_test, X_2_test=X_2_test, y_test=y_test)
+np.savez(os.path.join(destn_dir, 'train.npz'), X_1_train=X_1_train, X_2_train=X_2_train, X_3_train=X_3_train, y_train=y_train)
+np.savez(os.path.join(destn_dir, 'valid.npz'), X_1_valid=X_1_valid, X_2_valid=X_2_valid, X_3_valid=X_3_valid, y_valid=y_valid)
+np.savez(os.path.join(destn_dir, 'test.npz'), X_1_test=X_1_test, X_2_test=X_2_test, X_3_test=X_3_test, y_test=y_test)

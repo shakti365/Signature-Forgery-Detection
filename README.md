@@ -22,3 +22,9 @@ python clean.py
 cd src/data
 python preprocess.py
 ```
+
+- run the script to train model
+```python
+cd src/model
+python model.py
+```
