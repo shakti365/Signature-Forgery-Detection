@@ -39,8 +39,8 @@ for image_id in real_images_dict.keys():
     
     negative_image_tuples.extend(list(itertools.product(real, real, forged)))
 #     positive_image_tuples.extend(list(itertools.product(real, real)))
-    
-def process(image_path, size=(128, 256)):
+
+def process(image_path, size=(155, 220)):
     """returns processed images"""
     # Open image and convert to grayscale.
     image = Image.open(image_path)
@@ -56,7 +56,12 @@ def process(image_path, size=(128, 256)):
     
     # Normalize by dividing pixel values with standard deviation.
     image_array_processed = image_array_processed / np.std(image_array_processed)
+    
+    # Expand dimension to (155, 220, 1)
+    image_array_processed = np.expand_dims(image_array_processed, axis=2)
+    
     return image_array_processed
+
 
 # pre-process data
 image_1 = []
