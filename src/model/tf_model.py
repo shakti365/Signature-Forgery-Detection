@@ -64,7 +64,7 @@ class SiameseCNN:
     def euclidean_distance(self, y_true, y_pred):
         """
         """
-        euclidean_norm = tf.math.sqrt(tf.math.reduce_sum(tf.math.squared_difference(y_pred, y_true), axis=-1))
+        euclidean_norm = tf.math.reduce_sum(tf.math.squared_difference(y_pred, y_true), axis=-1)
         return euclidean_norm
 
     def triplet_loss(self, embeddings):
@@ -76,8 +76,8 @@ class SiameseCNN:
         positive_dist= self.euclidean_distance(processed_a, processed_p)
         negative_dist = self.euclidean_distance(processed_a, processed_n)
 
-        margin = 0.0
-        triplet_loss_op = tf.math.maximum(margin, positive_dist - negative_dist)
+        margin = 0.05
+        triplet_loss_op = tf.math.maximum(0.0, margin + positive_dist - negative_dist)
 
         loss =  tf.math.reduce_mean(triplet_loss_op)
         return loss
