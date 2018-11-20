@@ -176,7 +176,6 @@ class SiameseCNN:
                 while True:
                     try:
                         train_summary,_,_ = sess.run([summary_op, train_op, metrics_update_op])
-                        break
                     except tf.errors.OutOfRangeError:
                         break
 
@@ -193,7 +192,6 @@ class SiameseCNN:
                         try:
                             valid_summary,_ = sess.run([summary_op, metrics_update_op])
                             valid_writer.add_summary(valid_summary, epoch)
-                            break
                         except tf.errors.OutOfRangeError:
                             break
                     
@@ -298,13 +296,13 @@ if __name__=="__main__":
     config = dict()
 
     config['data_path'] = '../../data/processed'
-    config['valid_batch_size'] = 8
-    config['train_batch_size'] = 8
+    config['valid_batch_size'] = 16
+    config['train_batch_size'] = 16
     config['seed'] = 42
     config['learning_rate'] = 0.001
     config['epochs'] = 1
     config['export_dir'] = '../../data/models'
-    config['model_name'] = 'exp_4'
+    config['model_name'] = 'exp_1'
     config['log_step'] = 1
 
     siamese_model = SiameseCNN(config)
