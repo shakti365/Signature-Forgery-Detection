@@ -67,14 +67,15 @@ class SiameseCNN:
             conv2 = tf.layers.conv2d(inputs=pad1, filters=256, kernel_size=[5,5], activation=tf.nn.relu) 
             norm2 = tf.nn.local_response_normalization(conv2) 
             pool2 = tf.layers.max_pooling2d(inputs=norm2, pool_size=[3,3], strides=2)
+            drop1 = tf.layers.dropout(pool2,0.3)
 
-
-            conv3 = tf.layers.conv2d(inputs=pool2, filters=384, kernel_size=[3,3], activation=tf.nn.relu) 
+            conv3 = tf.layers.conv2d(inputs=drop1, filters=384, kernel_size=[3,3], activation=tf.nn.relu)
             conv4 = tf.layers.conv2d(inputs=conv3, filters=256, kernel_size=[3,3], activation=tf.nn.relu) 
             pool3 = tf.layers.max_pooling2d(inputs=conv4, pool_size=[3,3], strides=2)
+            drop2 = tf.layers.dropout(pool3, 0.3)
 
-            shapes = pool3.get_shape()
-            pool3_flattened = tf.reshape(pool3, [-1, shapes[1] * shapes[2] * shapes[3]])
+            shapes = drop2.get_shape()
+            pool3_flattened = tf.reshape(drop2, [-1, shapes[1] * shapes[2] * shapes[3]])
             dense1 = tf.layers.dense(inputs=pool3_flattened, units=1024, activation=tf.nn.relu)
             logits = tf.layers.dense(inputs=dense1, units=128, activation=tf.nn.relu)
 
@@ -85,7 +86,7 @@ class SiameseCNN:
         """
         """
         with tf.name_scope("euclidean_norm"):
-            euclidean_norm = tf.math.reduce_sum(tf.math.squared_difference(y_pred, y_true), axis=-1)
+            euclidean_norm = tf.reduce_sum(tf.math.squared_difference(y_pred, y_true), axis=-1)
         return euclidean_norm
 
     def triplet_loss(self, anchor, positive, negative):
@@ -96,9 +97,9 @@ class SiameseCNN:
             negative_dist = self.infer(anchor, negative)
 
             margin = 0.05
-            triplet_loss_op = tf.math.maximum(0.0, margin + positive_dist - negative_dist)
+            triplet_loss_op = tf.maximum(0.0, margin + positive_dist - negative_dist)
 
-            loss =  tf.math.reduce_mean(triplet_loss_op)
+            loss =  tf.reduce_mean(triplet_loss_op)
         return loss
 
 
