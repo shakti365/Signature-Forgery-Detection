@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import utils
-
+import operator
 
 class SiameseCNN:
 
@@ -86,7 +86,7 @@ class SiameseCNN:
         """
         """
         with tf.name_scope("euclidean_norm"):
-            euclidean_norm = tf.reduce_sum(tf.math.squared_difference(y_pred, y_true), axis=-1)
+            euclidean_norm = tf.reduce_sum(tf.squared_difference(y_pred, y_true), axis=-1)
         return euclidean_norm
 
     def triplet_loss(self, anchor, positive, negative):
@@ -113,7 +113,7 @@ class SiameseCNN:
 
             summary_op, metrics_update_op = utils.get_metrics(loss_op)
 
-        return train_op, summary_op, metrics_update_op
+        return train_op, summary_op, metrics_update_op, loss_op
 
 
     def infer(self, x1, x2, reuse=tf.AUTO_REUSE):
@@ -148,7 +148,7 @@ class SiameseCNN:
         train_init_op, valid_init_op, data_iter = self.numpy_input_fn()
         x1, x2, x3 = data_iter.get_next()
 
-        train_op, summary_op, metrics_update_op = self.train(x1, x2, x3)
+        train_op, summary_op, metrics_update_op, loss_op = self.train(x1, x2, x3)
 
         prediction = self.infer(x1, x2)
 
@@ -176,14 +176,14 @@ class SiameseCNN:
 
                 while True:
                     try:
-                        train_summary,_,_ = sess.run([summary_op, train_op, metrics_update_op])
+                        train_summary,_,_,train_loss_op = sess.run([summary_op, train_op, metrics_update_op, loss_op])
                     except tf.errors.OutOfRangeError:
                         break
 
                 if epoch % self.log_step == 0:
 
                     train_writer.add_summary(train_summary, epoch)
-
+                    print("train loss for {} epoch is {}".format(epoch, train_loss_op))
                     # Save model checkpoint.
                     self.saver.save(sess, self.CKPT_DIR+"{}.ckpt".format(self.model_name))
                     
@@ -191,11 +191,11 @@ class SiameseCNN:
 
                     while True:
                         try:
-                            valid_summary,_ = sess.run([summary_op, metrics_update_op])
+                            valid_summary,_,valid_loss_op = sess.run([summary_op, metrics_update_op,loss_op])
                             valid_writer.add_summary(valid_summary, epoch)
+                            print("valid loss for {} epoch is {}".format(epoch, valid_loss_op))
                         except tf.errors.OutOfRangeError:
                             break
-                    
 
             prediction_signature = self.create_prediction_signature(x1, x2, prediction)
             self.save_servables(prediction_signature, signature_def_key='predictions')
@@ -292,6 +292,44 @@ class SiameseCNN:
             self.builder.save()
 
 
+def find_threshold(pos_dist, neg_dist):
+    """
+    receives the euclidean dist for similar(post_dist) and dissimilar(neg_dist) images,
+    compares the accuracy for different values of these distances ranging from their min to max values.
+    The dist which gives max accuracy is returned as threshold.
+
+    :param pos_dist:
+    :param neg_dist:
+    :return:
+    """
+    pos_dist = np.arange(1,5)
+    neg_dist = np.arange(6,10)
+    min_dist = min([min(pos_dist),min(neg_dist)])
+
+    max_dist = max([max(pos_dist),max(neg_dist)])
+    accuracy = {}
+
+    for dist in range(min_dist,max_dist):
+
+        tp, tn = 0, 0
+
+        for pos in pos_dist:
+            if pos < dist:
+                tp = tp + 1
+
+        for neg in neg_dist:
+            if neg > dist:
+                tn = tn + 1
+
+        tpr = tp/float(len(pos_dist))
+        tnr = tn/float(len(neg_dist))
+
+        accuracy[dist] = (tpr+tnr)/2.0
+
+    threshold = max(accuracy.iteritems(), key=operator.itemgetter(1))[0]
+    return threshold
+
+
 if __name__=="__main__":
 
     config = dict()
@@ -302,20 +340,22 @@ if __name__=="__main__":
     config['seed'] = 42
     config['learning_rate'] = 0.001
     config['epochs'] = 1
-    config['export_dir'] = '../../data/models'
-    config['model_name'] = 'exp_1'
-    config['log_step'] = 1
+    config['export_dir'] = '../../data/models/models'
+    config['model_name'] = 'exp_4'
+    config['log_step'] = 100
 
     siamese_model = SiameseCNN(config)
     siamese_model.fit()
 
     # Get test set
     test = np.load(os.path.join(config['data_path'], 'test.npz'))
-    X_1_test=test['X_1_test'].astype(np.float32)[:5]
-    X_2_test=test['X_2_test'].astype(np.float32)[:5]
-    X_3_test=test['X_3_test'].astype(np.float32)[:5]
+    X_1_test=test['X_1_test'].astype(np.float32)[:6]
+    X_2_test=test['X_2_test'].astype(np.float32)[:6]
+    X_3_test=test['X_3_test'].astype(np.float32)[:6]
 
     pos = siamese_model.predict(X_1_test, X_2_test)
     neg = siamese_model.predict(X_1_test, X_3_test)
 
     print (pos, neg)
+
+    find_threshold(pos, neg)
