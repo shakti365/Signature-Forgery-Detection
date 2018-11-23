@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, roc_curve, roc_auc_score, f1_score, accuracy_score
+import operator
 
 def get_metrics(loss):
     """
@@ -83,9 +84,6 @@ def display_metrics(y, logits, threshold):
     print ("AUC: ", auc)
 
 
-
-
-
 def variable_summaries(var, var_name=None):
     """
     Creates summaries of a tensor variable.
@@ -140,4 +138,50 @@ def parameter_summaries(variables):
 	    var_name = '{}-variable'.format(var.name)
 	    if 'bias' not in var_name:
 	        variable_summaries(var, var_name=var_name)
+    
+def find_threshold(pos_dist, neg_dist):
+    """
+    receives the euclidean dist for similar(post_dist) and dissimilar(neg_dist) images,
+    compares the accuracy for different values of these distances ranging from their min to max values.
+    The dist which gives max accuracy is returned as threshold.
 
+    :param pos_dist:
+    :param neg_dist:
+    :return:
+    """
+    min_dist = min([min(pos_dist),min(neg_dist)])
+
+    max_dist = max([max(pos_dist),max(neg_dist)])
+    accuracy = {}
+    true_pos = {}
+    true_neg = {}
+    false_pos = {}
+    false_neg = {}
+
+    for dist in range(min_dist,max_dist):
+
+        tp, tn, fp, fn = 0, 0, 0, 0
+
+        for pos in pos_dist:
+            if pos < dist:
+                tp = tp + 1
+            else:
+                fn = fn + 1
+
+        for neg in neg_dist:
+            if neg > dist:
+                tn = tn + 1
+            else:
+                fp = fp + 1
+
+        tpr = tp/float(len(pos_dist))
+        tnr = tn/float(len(neg_dist))
+
+        true_pos[dist] = tp
+        true_neg[dist] = tn
+        false_pos[dist] = fp
+        false_neg[dist] = fn
+        accuracy[dist] = (tpr+tnr)/2.0
+
+    threshold = max(accuracy.iteritems(), key=operator.itemgetter(1))[0]
+    return threshold, accuracy, true_pos, true_neg, false_pos, false_neg
