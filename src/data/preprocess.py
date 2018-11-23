@@ -6,6 +6,7 @@ import numpy as np
 from scipy.misc import imresize
 from collections import defaultdict
 import itertools
+from utils import process
 
 real_images = glob.glob('../../data/interim/real/*.png')
 forged_images = glob.glob('../../data/interim/forged/*.png')
@@ -39,28 +40,6 @@ for image_id in real_images_dict.keys():
     
     negative_image_tuples.extend(list(itertools.product(real, real, forged)))
 #     positive_image_tuples.extend(list(itertools.product(real, real)))
-
-def process(image_path, size=(155, 220)):
-    """returns processed images"""
-    # Open image and convert to grayscale.
-    image = Image.open(image_path)
-    image = image.convert("L")
-    
-    image_array = np.array(image)
-    
-    # Resize image to 128, 256 using bilinear interpolation.
-    image_array_processed = imresize(image_array, size=size, interp='bilinear')
-    
-    # Invert pixel values.
-    image_array_processed = 1 - image_array_processed
-    
-    # Normalize by dividing pixel values with standard deviation.
-    image_array_processed = image_array_processed / np.std(image_array_processed)
-    
-    # Expand dimension to (155, 220, 1)
-    image_array_processed = np.expand_dims(image_array_processed, axis=2)
-    
-    return image_array_processed
 
 
 # pre-process data
