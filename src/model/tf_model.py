@@ -24,7 +24,13 @@ class SiameseCNN:
 
     def numpy_input_fn(self):
         """
+        Returns tf.data API ops for train and valid set.
 
+        Returns:
+        --------
+            train_init_op: tensorflow op to initialize data_iter with train set data
+            valid_init_op: tensorflow op to initialize data_iter with test set data
+            data_iter: iterable over dataset
         """
     
         # Get train set
@@ -55,7 +61,15 @@ class SiameseCNN:
 
     def model(self, x):
         """
+        Model architecture for SigNet returns embedding representation of input image.
 
+        Parameter:
+        ----------
+            x: batch of images in NHWC format [num_samples, height, width, channel]
+
+        Returns:
+        --------
+            logits: emebedding representation of signature from last layer.
         """
 
         with tf.variable_scope("signet", reuse=tf.AUTO_REUSE):
@@ -138,18 +152,20 @@ class SiameseCNN:
         else:
             os.mkdir(self.export_dir)
 
-
         self.builder=tf.saved_model.builder.SavedModelBuilder(self.SERVING_DIR)
 
-
+        # Clear default graph stack and set random seed.
         tf.reset_default_graph()
         tf.set_random_seed(self.seed)
 
+        # Create tensorflow ops to iterate over train and valid dataset.
         train_init_op, valid_init_op, data_iter = self.numpy_input_fn()
         x1, x2, x3 = data_iter.get_next()
 
+        # Get trainining, tensorboard summary, loss metrics updation and loss op.
         train_op, summary_op, metrics_update_op, loss_op = self.train(x1, x2, x3)
 
+        # Get euclidean distance of embedding representations.
         prediction = self.infer(x1, x2)
 
         # Ops to reset metrics at the end of every epoch
@@ -163,6 +179,7 @@ class SiameseCNN:
         
         with tf.Session() as sess:
 
+            # Initialize local and global variables.
             sess.run(tf.global_variables_initializer())
             sess.run(tf.local_variables_initializer())
 
@@ -170,39 +187,69 @@ class SiameseCNN:
             train_writer = tf.summary.FileWriter(self.TF_SUMMARY_DIR+'/train', sess.graph)
             valid_writer = tf.summary.FileWriter(self.TF_SUMMARY_DIR+'/valid')
 
+            # Run epochs
             for epoch in range(self.epochs):
 
+                # Initialize data iterator with train set.
                 sess.run(train_init_op)
 
+                # Initialize metrics update op for train set steps over one epoch.
+                sess.run(metrics_init_op)
+
+                # Step over all the batches in train set
                 while True:
                     try:
-                        train_summary,_,_,train_loss_op = sess.run([summary_op, train_op, metrics_update_op, loss_op])
+                        train_summary,_,_,train_loss = sess.run([summary_op, train_op, metrics_update_op, loss_op])
                     except tf.errors.OutOfRangeError:
                         break
 
                 if epoch % self.log_step == 0:
-
+                    
+                    # Log metrics for train set epoch 
                     train_writer.add_summary(train_summary, epoch)
-                    print("train loss for {} epoch is {}".format(epoch, train_loss_op))
+                    print("train loss for {} epoch is {}".format(epoch, train_loss))
+                    
                     # Save model checkpoint.
                     self.saver.save(sess, self.CKPT_DIR+"{}.ckpt".format(self.model_name))
                     
+                    # Initialize data iterator with valid set.
                     sess.run(valid_init_op)
 
+                    # Initialize metrics update op for valid set steps over one epoch.
+                    sess.run(metrics_init_op)
+
+                    # Step over all the batches of valid set
                     while True:
                         try:
-                            valid_summary,_,valid_loss_op = sess.run([summary_op, metrics_update_op,loss_op])
-                            valid_writer.add_summary(valid_summary, epoch)
-                            print("valid loss for {} epoch is {}".format(epoch, valid_loss_op))
+                            valid_summary,_,valid_loss = sess.run([summary_op, metrics_update_op, loss_op])
                         except tf.errors.OutOfRangeError:
                             break
+                    
+                    # Log metrics for valid set epoch
+                    valid_writer.add_summary(valid_summary, epoch)
+                    print("valid loss for {} epoch is {}".format(epoch, valid_loss))
 
+            # Create model serving at the end of all epochs and save it.        
             prediction_signature = self.create_prediction_signature(x1, x2, prediction)
             self.save_servables(prediction_signature, signature_def_key='predictions')
 
 
     def predict(self, x1, x2):
         """
+        Predict euclidean distance between set of images and display metrics.
+
+        Parameters:
+        -----------
+            x1: Numpy array [num_samples, height, width, channels]
+                NHWC representation of images
+
+            x2: Numpy array [num_samples, height, width, channels]
+                NHWC representation of images
+
+        Returns:
+        --------
+            dist: Numpy array [num_samples, 1]
+                Euclidean distance of images for all samples in batch
         """ 
 
         tf.reset_default_graph()
@@ -335,27 +382,33 @@ if __name__=="__main__":
     config = dict()
 
     config['data_path'] = '../../data/processed'
-    config['valid_batch_size'] = 16
-    config['train_batch_size'] = 16
+    config['valid_batch_size'] = 8
+    config['train_batch_size'] = 8
     config['seed'] = 42
     config['learning_rate'] = 0.001
     config['epochs'] = 1
-    config['export_dir'] = '../../data/models/models'
-    config['model_name'] = 'exp_4'
+    config['export_dir'] = '../../data/models'
+    config['model_name'] = 'exp_1'
     config['log_step'] = 100
 
     siamese_model = SiameseCNN(config)
-    siamese_model.fit()
+    #siamese_model.fit()
 
     # Get test set
     test = np.load(os.path.join(config['data_path'], 'test.npz'))
-    X_1_test=test['X_1_test'].astype(np.float32)[:6]
-    X_2_test=test['X_2_test'].astype(np.float32)[:6]
-    X_3_test=test['X_3_test'].astype(np.float32)[:6]
+    X_1_test=test['X_1_test'].astype(np.float32)[:64]
+    X_2_test=test['X_2_test'].astype(np.float32)[:64]
+    X_3_test=test['X_3_test'].astype(np.float32)[:64]
 
     pos = siamese_model.predict(X_1_test, X_2_test)
     neg = siamese_model.predict(X_1_test, X_3_test)
 
-    print (pos, neg)
-
-    find_threshold(pos, neg)
+    threshold, accuracy, tp, tn, fp, fn = utils.find_threshold(pos, neg)
+    print (threshold)
+    print ("accuracy: ", accuracy[threshold])
+    print ("tp: ", tp[threshold])
+    print ("tn: ", tn[threshold])
+    print ("fp: ", fp[threshold])
+    print ("fn: ", fn[threshold])
+    print ("precision: ", tp[threshold] / float(tp[threshold] + fp[threshold]))
+    print ("recall: ", tp[threshold] / float(tp[threshold] + fn[threshold]))
