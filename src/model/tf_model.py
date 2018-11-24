@@ -166,10 +166,10 @@ class SiameseCNN:
         """
         # Check if the export directory is present,
         # if not present create new directory.
-        if os.path.exists(self.export_dir):
-            raise ValueError("Export directory already exists. Please specify different export directory.")
-        else:
-            os.mkdir(self.export_dir)
+        # if os.path.exists(self.export_dir):
+        #     raise ValueError("Export directory already exists. Please specify different export directory.")
+        # else:
+        #     os.mkdir(self.export_dir)
 
         self.builder = tf.saved_model.builder.SavedModelBuilder(self.SERVING_DIR)
 
@@ -205,6 +205,10 @@ class SiameseCNN:
             # Create file writer directory to store summary and events.
             train_writer = tf.summary.FileWriter(self.TF_SUMMARY_DIR+'/train', sess.graph)
             valid_writer = tf.summary.FileWriter(self.TF_SUMMARY_DIR+'/valid')
+
+            ckpt = tf.train.get_checkpoint_state(self.export_dir)
+            if ckpt and ckpt.model_checkpoint_path:
+                self.saver.restore(sess, ckpt.model_checkpoint_path)
 
             # Run epochs
             for epoch in range(self.epochs):
