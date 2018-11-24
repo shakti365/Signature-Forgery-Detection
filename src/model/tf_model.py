@@ -4,6 +4,7 @@ import os
 import utils
 import operator
 
+
 class SiameseCNN:
 
     def __init__(self, config):
@@ -12,15 +13,14 @@ class SiameseCNN:
         self.train_batch_size = config['valid_batch_size']
         self.valid_batch_size = config['train_batch_size']
         self.seed = config['seed']
-        self.learning_rate=config['learning_rate']
+        self.learning_rate = config['learning_rate']
         self.epochs = config['epochs']
         self.export_dir = os.path.join(config['export_dir'], config['model_name'])
         self.model_name = config['model_name']
-        self.SERVING_DIR=os.path.join(self.export_dir, self.model_name+'_serving', '1')
-        self.TF_SUMMARY_DIR=os.path.join(self.export_dir, self.model_name+'_summary')
-        self.CKPT_DIR=os.path.join(self.export_dir, self.model_name+'_checkpoint')
-        self.log_step=config['log_step']                
-
+        self.SERVING_DIR = os.path.join(self.export_dir, self.model_name+'_serving', '1')
+        self.TF_SUMMARY_DIR = os.path.join(self.export_dir, self.model_name+'_summary')
+        self.CKPT_DIR = os.path.join(self.export_dir, self.model_name+'_checkpoint')
+        self.log_step = config['log_step']
 
     def numpy_input_fn(self):
         """
@@ -35,15 +35,15 @@ class SiameseCNN:
     
         # Get train set
         train = np.load(os.path.join(self.data_path, 'train.npz'))
-        X_1_train=train['X_1_train'].astype(np.float32)
-        X_2_train=train['X_2_train'].astype(np.float32)
-        X_3_train=train['X_3_train'].astype(np.float32)
+        X_1_train = train['X_1_train'].astype(np.float32)
+        X_2_train = train['X_2_train'].astype(np.float32)
+        X_3_train = train['X_3_train'].astype(np.float32)
 
         # Get valid set
         valid = np.load(os.path.join(self.data_path, 'valid.npz'))
-        X_1_valid=valid['X_1_valid'].astype(np.float32)
-        X_2_valid=valid['X_2_valid'].astype(np.float32)
-        X_3_valid=valid['X_3_valid'].astype(np.float32)
+        X_1_valid = valid['X_1_valid'].astype(np.float32)
+        X_2_valid = valid['X_2_valid'].astype(np.float32)
+        X_3_valid = valid['X_3_valid'].astype(np.float32)
 
         # Create Dataset object from input.
         train_dataset = tf.data.Dataset.from_tensor_slices((X_1_train, X_2_train, X_3_train)).batch(self.train_batch_size)
@@ -57,7 +57,6 @@ class SiameseCNN:
         valid_init_op = data_iter.make_initializer(valid_dataset)
 
         return train_init_op, valid_init_op, data_iter
-
 
     def model(self, x):
         """
@@ -95,9 +94,12 @@ class SiameseCNN:
 
         return logits
 
-
     def euclidean_distance(self, y_true, y_pred):
         """
+        Finds the euclidean distance between the two given inputs received.
+        :param y_true:
+        :param y_pred:
+        :return: euclidean distance
         """
         with tf.name_scope("euclidean_norm"):
             euclidean_norm = tf.reduce_sum(tf.squared_difference(y_pred, y_true), axis=-1)
@@ -105,6 +107,12 @@ class SiameseCNN:
 
     def triplet_loss(self, anchor, positive, negative):
         """
+        Computs the embedding distance for anchor-positive and anchor-negative and accordingly calculate the loss given
+         by the below formula used in the code
+        :param anchor:
+        :param positive:
+        :param negative:
+        :return: loss
         """
         with tf.name_scope("triplet_loss"):
             positive_dist= self.infer(anchor, positive)
@@ -113,13 +121,17 @@ class SiameseCNN:
             margin = 0.05
             triplet_loss_op = tf.maximum(0.0, margin + positive_dist - negative_dist)
 
-            loss =  tf.reduce_mean(triplet_loss_op)
+            loss = tf.reduce_mean(triplet_loss_op)
         return loss
 
-
     def train(self, x1, x2, x3):
+
         """
-        
+        The triplet loss is calculated by and is minimized using Optimizer.Returns the metrics and optimizer operation.
+        :param x1:
+        :param x2:
+        :param x3:
+        :return: train_op, summary_op, metrics_update_op, loss_op
         """
         with tf.name_scope("train"):
             loss_op = self.triplet_loss(x1, x2, x3)
@@ -129,10 +141,13 @@ class SiameseCNN:
 
         return train_op, summary_op, metrics_update_op, loss_op
 
-
     def infer(self, x1, x2, reuse=tf.AUTO_REUSE):
         """
-
+        returns embedding distance between x1 and x2
+        :param x1:
+        :param x2:
+        :param reuse:
+        :return: embedding_dist
         """
         with tf.variable_scope("siamese_network", reuse=reuse) as scope:
             embedding_x1 = self.model(x1) 
@@ -144,7 +159,11 @@ class SiameseCNN:
         return embedding_dist
 
     def fit(self):
-
+        """
+        The end to end process of training is completed from data generation to model training to summarizing the loss
+        and metrics.  The trained model is saved as a checkpoint for further usage.
+        :return:
+        """
         # Check if the export directory is present,
         # if not present create new directory.
         if os.path.exists(self.export_dir):
@@ -152,7 +171,7 @@ class SiameseCNN:
         else:
             os.mkdir(self.export_dir)
 
-        self.builder=tf.saved_model.builder.SavedModelBuilder(self.SERVING_DIR)
+        self.builder = tf.saved_model.builder.SavedModelBuilder(self.SERVING_DIR)
 
         # Clear default graph stack and set random seed.
         tf.reset_default_graph()
@@ -233,7 +252,6 @@ class SiameseCNN:
             prediction_signature = self.create_prediction_signature(x1, x2, prediction)
             self.save_servables(prediction_signature, signature_def_key='predictions')
 
-
     def predict(self, x1, x2):
         """
         Predict euclidean distance between set of images and display metrics.
@@ -303,7 +321,6 @@ class SiameseCNN:
         
         return prediction_signature
 
-
     def save_servables(self, prediction_signature, signature_def_key):
         """
         Loads the latest model checkpoint and saves model as a servable for production
@@ -339,42 +356,42 @@ class SiameseCNN:
             self.builder.save()
 
 
-def find_threshold(pos_dist, neg_dist):
-    """
-    receives the euclidean dist for similar(post_dist) and dissimilar(neg_dist) images,
-    compares the accuracy for different values of these distances ranging from their min to max values.
-    The dist which gives max accuracy is returned as threshold.
-
-    :param pos_dist:
-    :param neg_dist:
-    :return:
-    """
-    pos_dist = np.arange(1,5)
-    neg_dist = np.arange(6,10)
-    min_dist = min([min(pos_dist),min(neg_dist)])
-
-    max_dist = max([max(pos_dist),max(neg_dist)])
-    accuracy = {}
-
-    for dist in range(min_dist,max_dist):
-
-        tp, tn = 0, 0
-
-        for pos in pos_dist:
-            if pos < dist:
-                tp = tp + 1
-
-        for neg in neg_dist:
-            if neg > dist:
-                tn = tn + 1
-
-        tpr = tp/float(len(pos_dist))
-        tnr = tn/float(len(neg_dist))
-
-        accuracy[dist] = (tpr+tnr)/2.0
-
-    threshold = max(accuracy.iteritems(), key=operator.itemgetter(1))[0]
-    return threshold
+# def find_threshold(pos_dist, neg_dist):
+#     """
+#     receives the euclidean dist for similar(post_dist) and dissimilar(neg_dist) images,
+#     compares the accuracy for different values of these distances ranging from their min to max values.
+#     The dist which gives max accuracy is returned as threshold.
+#
+#     :param pos_dist:
+#     :param neg_dist:
+#     :return:
+#     """
+#     pos_dist = np.arange(1,5)
+#     neg_dist = np.arange(6,10)
+#     min_dist = min([min(pos_dist),min(neg_dist)])
+#
+#     max_dist = max([max(pos_dist),max(neg_dist)])
+#     accuracy = {}
+#
+#     for dist in range(min_dist,max_dist):
+#
+#         tp, tn = 0, 0
+#
+#         for pos in pos_dist:
+#             if pos < dist:
+#                 tp = tp + 1
+#
+#         for neg in neg_dist:
+#             if neg > dist:
+#                 tn = tn + 1
+#
+#         tpr = tp/float(len(pos_dist))
+#         tnr = tn/float(len(neg_dist))
+#
+#         accuracy[dist] = (tpr+tnr)/2.0
+#
+#     threshold = max(accuracy.iteritems(), key=operator.itemgetter(1))[0]
+#     return threshold
 
 
 if __name__=="__main__":
