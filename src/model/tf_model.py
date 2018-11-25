@@ -137,9 +137,11 @@ class SiameseCNN:
             loss_op = self.triplet_loss(x1, x2, x3)
             train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(loss_op) 
 
-            summary_op, metrics_update_op = utils.get_metrics(loss_op)
+            summary_op, mean_loss_op, metrics_update_op = utils.get_metrics(loss_op)
 
-        return train_op, summary_op, metrics_update_op, loss_op
+            tf.summary.scalar('loss', loss_op)
+
+        return train_op, summary_op, metrics_update_op, loss_op, mean_loss_op
 
     def infer(self, x1, x2, reuse=tf.AUTO_REUSE):
         """
@@ -182,7 +184,7 @@ class SiameseCNN:
         x1, x2, x3 = data_iter.get_next()
 
         # Get trainining, tensorboard summary, loss metrics updation and loss op.
-        train_op, summary_op, metrics_update_op, loss_op = self.train(x1, x2, x3)
+        train_op, summary_op, metrics_update_op, loss_op, mean_loss_op = self.train(x1, x2, x3)
 
         # Get euclidean distance of embedding representations.
         prediction = self.infer(x1, x2)
@@ -222,7 +224,7 @@ class SiameseCNN:
                 # Step over all the batches in train set
                 while True:
                     try:
-                        train_summary,_,_,train_loss = sess.run([summary_op, train_op, metrics_update_op, loss_op])
+                        train_summary,_,_,train_loss, mean_train_loss = sess.run([summary_op, train_op, metrics_update_op, loss_op, mean_loss_op])
                     except tf.errors.OutOfRangeError:
                         break
 
@@ -230,7 +232,7 @@ class SiameseCNN:
                     
                     # Log metrics for train set epoch 
                     train_writer.add_summary(train_summary, epoch)
-                    print("train loss for {} epoch is {}".format(epoch, train_loss))
+                    print("train loss for {} epoch is {}".format(epoch, mean_train_loss))
                     
                     # Save model checkpoint.
                     self.saver.save(sess, self.CKPT_DIR+"{}.ckpt".format(self.model_name))
@@ -244,13 +246,13 @@ class SiameseCNN:
                     # Step over all the batches of valid set
                     while True:
                         try:
-                            valid_summary,_,valid_loss = sess.run([summary_op, metrics_update_op, loss_op])
+                            valid_summary,_,valid_loss, mean_valid_loss = sess.run([summary_op, metrics_update_op, loss_op, mean_loss_op])
                         except tf.errors.OutOfRangeError:
                             break
                     
                     # Log metrics for valid set epoch
                     valid_writer.add_summary(valid_summary, epoch)
-                    print("valid loss for {} epoch is {}".format(epoch, valid_loss))
+                    print("valid loss for {} epoch is {}".format(epoch, mean_valid_loss))
 
             # Create model serving at the end of all epochs and save it.        
             prediction_signature = self.create_prediction_signature(x1, x2, prediction)
@@ -407,13 +409,13 @@ if __name__=="__main__":
     config['train_batch_size'] = 8
     config['seed'] = 42
     config['learning_rate'] = 0.001
-    config['epochs'] = 1
+    config['epochs'] = 2
     config['export_dir'] = '../../data/models'
-    config['model_name'] = 'exp_1'
-    config['log_step'] = 100
+    config['model_name'] = 'exp_2'
+    config['log_step'] = 1
 
     siamese_model = SiameseCNN(config)
-    #siamese_model.fit()
+    siamese_model.fit()
 
     # Get test set
     test = np.load(os.path.join(config['data_path'], 'test.npz'))
