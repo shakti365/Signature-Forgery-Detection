@@ -179,6 +179,11 @@ class SiameseCNN:
         tf.reset_default_graph()
         tf.set_random_seed(self.seed)
 
+        x1_ = tf.placeholder(shape=[None, 155, 220, 1], dtype=tf.float32, name='input')
+        x2_ = tf.placeholder(shape=[None, 155, 220, 1], dtype=tf.float32, name='input')
+
+        embedding_dist = self.infer(x1_, x2_, reuse=True)
+
         # Create tensorflow ops to iterate over train and valid dataset.
         train_init_op, valid_init_op, data_iter = self.numpy_input_fn()
         x1, x2, x3 = data_iter.get_next()
@@ -225,6 +230,7 @@ class SiameseCNN:
                 while True:
                     try:
                         train_summary,_,_,train_loss, mean_train_loss = sess.run([summary_op, train_op, metrics_update_op, loss_op, mean_loss_op])
+                        break
                     except tf.errors.OutOfRangeError:
                         break
 
@@ -247,6 +253,7 @@ class SiameseCNN:
                     while True:
                         try:
                             valid_summary,_,valid_loss, mean_valid_loss = sess.run([summary_op, metrics_update_op, loss_op, mean_loss_op])
+                            break
                         except tf.errors.OutOfRangeError:
                             break
                     
@@ -255,7 +262,7 @@ class SiameseCNN:
                     print("valid loss for {} epoch is {}".format(epoch, mean_valid_loss))
 
             # Create model serving at the end of all epochs and save it.        
-            prediction_signature = self.create_prediction_signature(x1, x2, prediction)
+            prediction_signature = self.create_prediction_signature(x1_, x2_, embedding_dist)
             self.save_servables(prediction_signature, signature_def_key='predictions')
 
     def predict(self, x1, x2):
@@ -307,7 +314,7 @@ class SiameseCNN:
         """
         # Create input and output utils for prediction signature.
         tensor_info_x1 = tf.saved_model.utils.build_tensor_info(x1)
-        tensor_info_x2 = tf.saved_model.utils.build_tensor_info(x1)
+        tensor_info_x2 = tf.saved_model.utils.build_tensor_info(x2)
         
         tensor_info_prediction = tf.saved_model.utils.build_tensor_info(prediction)
 
@@ -409,7 +416,7 @@ if __name__=="__main__":
     config['train_batch_size'] = 8
     config['seed'] = 42
     config['learning_rate'] = 0.001
-    config['epochs'] = 2
+    config['epochs'] = 1
     config['export_dir'] = '../../data/models'
     config['model_name'] = 'exp_2'
     config['log_step'] = 1
@@ -417,11 +424,12 @@ if __name__=="__main__":
     siamese_model = SiameseCNN(config)
     siamese_model.fit()
 
+    """
     # Get test set
     test = np.load(os.path.join(config['data_path'], 'test.npz'))
-    X_1_test=test['X_1_test'].astype(np.float32)[:64]
-    X_2_test=test['X_2_test'].astype(np.float32)[:64]
-    X_3_test=test['X_3_test'].astype(np.float32)[:64]
+    X_1_test=test['X_1_test'].astype(np.float32)[:8]
+    X_2_test=test['X_2_test'].astype(np.float32)[:8]
+    X_3_test=test['X_3_test'].astype(np.float32)[:8]
 
     pos = siamese_model.predict(X_1_test, X_2_test)
     neg = siamese_model.predict(X_1_test, X_3_test)
@@ -435,3 +443,4 @@ if __name__=="__main__":
     print ("fn: ", fn[threshold])
     print ("precision: ", tp[threshold] / float(tp[threshold] + fp[threshold]))
     print ("recall: ", tp[threshold] / float(tp[threshold] + fn[threshold]))
+    """
