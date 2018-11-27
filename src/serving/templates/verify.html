@@ -92,7 +92,7 @@
     <body>
         <div class="container">
             <div class="col-md-6">
-                <form action="/auth/verify" method="POST" enctype="multipart/form-data">
+                <form action="/signature/verify" method="POST" enctype="multipart/form-data">
                     <div class="form-group">
                         <label>Upload Original Signature</label>
                         <div class="input-group">
@@ -117,9 +117,9 @@
                         </div>
                     </div>
 
-                    <input type="submit" class="btn btn-default btn-file">
+                    <input type="submit" class="btn btn-default btn-file" value="verify">
                 </form>
-                <p>{{output}}</p>
+                <p>The similarity score is: {{output}}</p>
             </div>
         </div>
     </body>

@@ -92,34 +92,21 @@
     <body>
         <div class="container">
             <div class="col-md-6">
-                <form action="/signature/register" method="POST" enctype="multipart/form-data">
+                <form action="/signature/verify" method="GET" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label>Upload Original Signature</label>
-                        <div class="input-group">
-                            <span class="input-group-btn">
-                                <span class="btn btn-default btn-file">
-                                    Browse… <input type="file" id="imgInp1" name="input1">
-                                </span>
-                            </span>
-                            <input type="text" class="form-control" readonly>
-                        </div>
-                        {% if filename1 %}
+                        <label>Real Signature</label>
+                        <div class="form-group">
                             <img id='img-upload-1' src={{url_for('static', filename=filename1)}}>
-                        {% else %}
-                            <img id='img-upload-1'>
-                        {% endif %}
-                    </div>
+                        </div>
     
                     <div class="form-group">
-                        <label>Enter Username</label>
-                        <div class="input-group">
-                            <input type="text" id="UserName" name="username">
-                        </div>
+                        <label>Test Signature</label>
+                        <div class="form-group">
+                            <img id='img-upload-2' src={{url_for('static', filename=filename2)}}>
                     </div>
-
-                    <input type="submit" class="btn btn-default btn-file">
+                    <p>{{output}}</p>
+                    <input type="submit" class="btn btn-default btn-file" value="verify another">
                 </form>
-                <p>{{output}}</p>
             </div>
         </div>
     </body>
