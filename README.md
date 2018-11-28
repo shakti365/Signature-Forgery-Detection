@@ -28,3 +28,21 @@ python preprocess.py
 cd src/model
 python model.py
 ```
+
+- run tensorboard
+```
+tensorboard --logdir=<path/to/model/summary>
+```
+
+- run the flask server in `development` mode
+```
+cd src
+export FLASK_APP=serving
+export FLASK_ENV=development
+flask run --host=0.0.0.0 --port=8000
+```
+
+- run tensorflow model serving
+```
+tensorflow_model_server --port=8500 --rest_api_port=8501 --model_name=my_model --model_base_path=<path/to/model/serving>
+```
