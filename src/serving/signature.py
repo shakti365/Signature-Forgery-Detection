@@ -143,7 +143,7 @@ def explain(x2, x1, filename):
             else:
                 output = "Error!"
             result = output['predictions'][0]
-            results.append([result, 0])
+            results.append([result, 1-result])
 
         return np.array(results, ndmin=2)
     

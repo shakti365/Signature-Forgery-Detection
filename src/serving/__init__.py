@@ -1,6 +1,7 @@
 import os
-
-from flask import Flask
+import markdown
+import requests
+from flask import Flask, render_template, Markup
 
 def create_app(test_config=None):
     # create and configure the app
@@ -24,10 +25,17 @@ def create_app(test_config=None):
         pass
 
     # a simple page that says hello
-    @app.route('/hello')
+    @app.route('/')
     def hello():
-        return 'Hello, World!'
+        r = requests.get("https://raw.githubusercontent.com/shakti365/Signature-Forgery-Detection/master/One-Shot%20Signature%20Recognition%20Using%20Siamese%20Networks.md")
+        content = r.text
+        content = Markup(markdown.markdown(content))
+        return render_template('index.html', content=content)
     
+    @app.route('/howitworks')
+    def usage():
+        return render_template('usage.html')
+
     from . import db
     db.init_app(app)
 
