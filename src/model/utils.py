@@ -149,20 +149,22 @@ def find_threshold(pos_dist, neg_dist):
     :param neg_dist:
     :return:
     """
-    min_dist = min([min(pos_dist),min(neg_dist)])
+    min_dist = min([min(pos_dist), min(neg_dist)])
 
-    max_dist = max([max(pos_dist),max(neg_dist)])
+    max_dist = max([max(pos_dist), max(neg_dist)])
+    print min_dist, max_dist
     accuracy = {}
     true_pos = {}
     true_neg = {}
     false_pos = {}
     false_neg = {}
 
-    for dist in range(min_dist,max_dist):
-
+    dist = min_dist
+    while dist <= max_dist:
         tp, tn, fp, fn = 0, 0, 0, 0
 
         for pos in pos_dist:
+
             if pos < dist:
                 tp = tp + 1
             else:
@@ -174,14 +176,16 @@ def find_threshold(pos_dist, neg_dist):
             else:
                 fp = fp + 1
 
-        tpr = tp/float(len(pos_dist))
-        tnr = tn/float(len(neg_dist))
+        tpr = tp / float(len(pos_dist))
+        tnr = tn / float(len(neg_dist))
 
         true_pos[dist] = tp
         true_neg[dist] = tn
         false_pos[dist] = fp
         false_neg[dist] = fn
-        accuracy[dist] = (tpr+tnr)/2.0
+        accuracy[dist] = (tpr + tnr) / 2.0
+        dist = dist + 0.01
 
+    print "accuracy", accuracy
     threshold = max(accuracy.iteritems(), key=operator.itemgetter(1))[0]
     return threshold, accuracy, true_pos, true_neg, false_pos, false_neg
