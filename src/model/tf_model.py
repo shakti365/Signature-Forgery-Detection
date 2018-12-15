@@ -131,7 +131,7 @@ class SiameseCNN:
             positive_dist= self.infer(anchor, positive)
             negative_dist = self.infer(anchor, negative)
 
-            margin = 0.05
+            margin = 0.5
             triplet_loss_op = tf.maximum(0.0, margin + positive_dist - negative_dist)
 
             loss = tf.reduce_mean(triplet_loss_op)
@@ -193,6 +193,11 @@ class SiameseCNN:
         # Clear default graph stack and set random seed.
         tf.reset_default_graph()
         tf.set_random_seed(self.seed)
+
+        x1_ = tf.placeholder(shape=[None, 155, 220, 1], dtype=tf.float32, name='input')
+        x2_ = tf.placeholder(shape=[None, 155, 220, 1], dtype=tf.float32, name='input')
+
+        embedding_dist = self.infer(x1_, x2_, reuse=True)
 
         # Create tensorflow ops to iterate over train and valid dataset.
         train_init_op, valid_init_op, data_iter = self.numpy_input_fn()
@@ -281,6 +286,7 @@ class SiameseCNN:
                     self.saver.save(sess, self.CKPT_DIR + "{}.ckpt".format(self.model_name))
 
             # Create model serving at the end of all epochs and save it.
+
             prediction_signature = self.create_prediction_signature(x1_, x2_, embedding_dist)
             self.save_servables(prediction_signature, signature_def_key='predictions')
 
@@ -403,11 +409,12 @@ if __name__=="__main__":
     siamese_model = SiameseCNN(config)
     siamese_model.fit()
 
+    """
     # Get test set
     test = np.load(os.path.join(config['data_path'], 'test.npz'))
-    X_1_test=test['X_1_test'].astype(np.float32)[:64]
-    X_2_test=test['X_2_test'].astype(np.float32)[:64]
-    X_3_test=test['X_3_test'].astype(np.float32)[:64]
+    X_1_test=test['X_1_test'].astype(np.float32)[:8]
+    X_2_test=test['X_2_test'].astype(np.float32)[:8]
+    X_3_test=test['X_3_test'].astype(np.float32)[:8]
 
     pos = siamese_model.predict(X_1_test, X_2_test)
     neg = siamese_model.predict(X_1_test, X_3_test)
@@ -421,3 +428,4 @@ if __name__=="__main__":
     print ("fn: ", fn[threshold])
     print ("precision: ", tp[threshold] / float(tp[threshold] + fp[threshold]))
     print ("recall: ", tp[threshold] / float(tp[threshold] + fn[threshold]))
+    """

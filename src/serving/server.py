@@ -7,7 +7,7 @@ sys.path.append(SRC_DIR)
 
 from flask import Flask, request, render_template, url_for
 import numpy as np
-from tf_model import SiameseCNN
+from model.tf_model import SiameseCNN
 
 from data import process_two
 
@@ -33,21 +33,8 @@ app.config['UPLOAD_FOLDER'] = upload_folder
 
 @app.route("/")
 def index():
-    return "Hello World!"
+    return "Server runnning!"
 
-@app.route("/testinfer")
-def testinfer():
-
-    # Get test set
-    test = np.load(os.path.join(config['data_path'], 'test.npz'))
-    X_1_test=test['X_1_test'].astype(np.float32)[:1]
-    X_2_test=test['X_2_test'].astype(np.float32)[:1]
-    X_3_test=test['X_3_test'].astype(np.float32)[:1]
-
-    pos = siamese_model.predict(X_1_test, X_2_test)
-    neg = siamese_model.predict(X_1_test, X_3_test)
-    print pos
-    return "similarity score: {}, {}".format(pos, neg)
 
 @app.route("/infer", methods=['POST', 'GET'])
 def infer():

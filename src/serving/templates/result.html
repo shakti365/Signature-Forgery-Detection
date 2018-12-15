@@ -1,0 +1,153 @@
+<html>
+    <head>
+        <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+        <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+        <!-- Custom styles for this template -->
+        <link href="{{url_for('static', filename='sticky-footer-navbar.css')}}" rel="stylesheet">
+        <style>
+            .btn-file {
+                position: relative;
+                overflow: hidden;
+            }
+            .btn-file input[type=file] {
+                position: absolute;
+                top: 0;
+                right: 0;
+                min-width: 100%;
+                min-height: 100%;
+                font-size: 100px;
+                text-align: right;
+                filter: alpha(opacity=0);
+                opacity: 0;
+                outline: none;
+                background: white;
+                cursor: inherit;
+                display: block;
+            }
+
+            #img-upload-1{
+                width: 100%;
+            }
+            #img-upload-2{
+                width: 100%;
+            }
+            #img-uploaded-1{
+                width: 100%;
+            }
+            #img-uploaded-2{
+                width: 100%;
+            }
+        </style>
+        <script>
+            $(document).ready( function() {
+                $(document).on('change', '.btn-file :file', function() {
+                var input = $(this),
+                    label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+                input.trigger('fileselect', [label]);
+                });
+
+                $('.btn-file :file').on('fileselect', function(event, label) {
+                    
+                    var input = $(this).parents('.input-group').find(':text'),
+                        log = label;
+                    
+                    if( input.length ) {
+                        input.val(log);
+                    } else {
+                        if( log ) alert(log);
+                    }
+                
+                });
+                function readURL1(input) {
+                    if (input.files && input.files[0]) {
+                        var reader = new FileReader();
+                        
+                        reader.onload = function (e) {
+                            $('#img-upload-1').attr('src', e.target.result);
+                        }
+                        
+                        reader.readAsDataURL(input.files[0]);
+                    }
+                }
+                function readURL2(input) {
+                    if (input.files && input.files[0]) {
+                        var reader = new FileReader();
+                        
+                        reader.onload = function (e) {
+                            $('#img-upload-2').attr('src', e.target.result);
+                        }
+                        
+                        reader.readAsDataURL(input.files[0]);
+                    }
+                }
+                $("#imgInp1").change(function(){
+                    readURL1(this);
+                });
+                $("#imgInp2").change(function(){
+                    readURL2(this);
+                }); 	
+            });
+        </script>
+    </head>
+    <body>
+
+
+        <!-- Fixed navbar -->
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">GLIE</a>
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/howitworks">Usage</a></li>
+                    <li><a href="/signature/register">Register</a></li>
+                    <li class="active"><a href="/signature/verify">Verify</a></li>
+                </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>Results</h1>
+            </div>
+
+            <div class="col-md-6">
+                <form action="/signature/verify" method="GET" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Real Signature</label>
+                        <p>Stored signature for the customer against username</p>
+                        <div class="form-group">
+                            <img id='img-upload-1' src={{url_for('static', filename=filename1)}}>
+                        </div>
+    
+                    <div class="form-group">
+                        <label>Test Signature</label>
+                        <p>Signature to ber verified</p>
+                        <div class="form-group">
+                            <img id='img-upload-2' src={{url_for('static', filename=filename2)}}>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Explanation</label>
+                        <p>Portions in yellow shows the part of signature which the model used to show confidence towards not similar</p>
+                        <div class="form-group">
+                            <img id='img-upload-2' src={{url_for('static', filename=explanation)}}>
+                    </div>
+
+                    <p>Dis-Similarity Score: {{output}}</p>
+                    <input type="submit" class="btn btn-default btn-file" value="verify another">
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

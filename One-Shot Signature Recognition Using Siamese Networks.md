@@ -81,6 +81,18 @@ The constrastive loss tries to bring embeddings of same inputs closer together. 
 
 The approach that we propose here is a one-shot siamese network with triplet loss. The goal will be to train the model using data set provided in order to learn the distance measure. The model will then be served using tensorflow and flask backend for match score predictions. Our aim with this approach is to reduce the error rate to a minimum, however, we realise that it might not be possible to reach zero error rates and best use cases of AI comes only when humans can understand and work together with such system. In order to support the end users, we would also like to propose a system where end users can understand why a given match score is predicted by the model using model interpretability techniques [4, 5]. This can serve as a feedback mechanism and process for quality assurance of the system. 
 
+### Results
+
+The data set provided was split in three parts comprising 80% of train set, 10% of validatiion set and 10% as held out test set. The model was trained and on the train set using GPU runtime in colab notebooks. Hyperameter tuning was done by observing metrics like loss, accuracy, precision and recall on the validation set. Once the model achieved desired state it was tested out on the held out data set, where following results were observed.
+
+| Metric    | Value |
+| --------- | ----- |
+| Accuracy  | 0.96  |
+| Precision | 0.925 |
+| Recall    | 1.0   |
+
+A more robust test set with noisy background image in real environment is planed and will be tested in next phase.
+
 ### References:
 
 1. Dey et.al. *SigNet: Convolutional Siamese Network for Writer Independent Offline Signature Verification* https://arxiv.org/abs/1707.02131

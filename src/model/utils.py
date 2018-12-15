@@ -36,17 +36,14 @@ def get_metrics(loss):
         with tf.name_scope('mean_loss'):
             update_total = tf.assign_add(total, loss)
             update_count = tf.assign_add(count, 1.0)
-            mean_loss = tf.divide(total, count)
+            mean_loss = tf.divide(update_total, update_count)
             mean_loss_update = tf.group([update_total, update_count])
-	
-	tf.summary.scalar('loss', loss)
-        tf.summary.scalar('mean_loss', mean_loss)
-	
-        # merge all summary as an Op.
-	merged = tf.summary.merge_all()
 
+        tf.summary.scalar('mean_loss', mean_loss)
+
+        merged = tf.summary.merge_all()
 			       
-    return merged, mean_loss_update
+    return merged, mean_loss, mean_loss_update
 
 
 def display_metrics(y, logits, threshold):
